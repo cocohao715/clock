@@ -11,4 +11,8 @@
     <result column="speech_path" jdbcType="VARCHAR" property="speechPath" />
     <result column="time" jdbcType="TIMESTAMP" property="time" />
   </resultMap>
+
+  <select id="selectDailyMap" parameterType="string" resultMap="BaseResultMap">
+    select * from speech_info where daily_map=#{dailyMap}
+  </select>
 </mapper>

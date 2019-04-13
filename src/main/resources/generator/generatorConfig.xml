@@ -29,7 +29,7 @@
                              targetProject="src/main/java"
                              type="XMLMAPPER"/>
 
-        <table tableName="user_info"/>
+        <table tableName="daily_record"/>
 
 
     </context>

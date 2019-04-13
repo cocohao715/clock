@@ -3,6 +3,7 @@ package com.gduf.clock.controller;
 
 import com.gduf.clock.service.DailyService;
 import com.gduf.clock.service.impl.DailyServiceImpl;
+import com.gduf.clock.vo.DailyVO;
 import com.gduf.clock.vo.Result;
 import io.swagger.annotations.ApiImplicitParam;
 import io.swagger.annotations.ApiImplicitParams;
@@ -11,12 +12,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import tk.mybatis.mapper.util.StringUtil;
+
+import java.util.List;
 
 
 @RestController
@@ -24,17 +24,16 @@ import tk.mybatis.mapper.util.StringUtil;
 public class DailyController {
 
     private DailyService dailyService;
-
-    public DailyController(DailyServiceImpl dailyService) {
-        this.dailyService = dailyService;
-
-    }
     @Value("${web.upload.image.type}")
     private int imageType;
     @Value("${web.upload.video.type}")
     private int videoType;
     @Value("${web.upload.speech.type}")
     private int speechType;
+    public DailyController(DailyServiceImpl dailyService) {
+        this.dailyService = dailyService;
+
+    }
 
     @ApiOperation(value = "发表日志的附件上传", notes = "发表日志的附件上传")
     @ApiImplicitParams(
@@ -61,6 +60,7 @@ public class DailyController {
             }
 
         } catch (Exception e) {
+
             log.info(e.toString());
             return new ResponseEntity(new Result("上传失败"), HttpStatus.FAILED_DEPENDENCY);
         }
@@ -74,19 +74,19 @@ public class DailyController {
     @ApiOperation(value = "提交日志内容", notes = "提交日志内容")
     @ApiImplicitParams(
             {
-                   @ApiImplicitParam(name = "openId", dataType = "String", paramType = "query", value = "openId"),
+                    @ApiImplicitParam(name = "openId", dataType = "String", paramType = "query", value = "openId"),
                     @ApiImplicitParam(name = "content", dataType = "String", paramType = "query", value = "日志内容"),
                     @ApiImplicitParam(name = "dailyMap", dataType = "String", paramType = "query", value = "与日志信息对应关系")
             }
     )
     @PostMapping(value = "upContent", produces = "application/json; charset=utf-8")
     @ResponseBody
-    public ResponseEntity upContent(@RequestParam("openId")String openId,
-                                    @RequestParam("content")String content,
+    public ResponseEntity upContent(@RequestParam("openId") String openId,
+                                    @RequestParam("content") String content,
                                     @RequestParam("dailyMap") String dailyMap) {
         try {
-            if (StringUtil.isNotEmpty(content) && StringUtil.isNotEmpty(openId)&& StringUtil.isNotEmpty(dailyMap)) {
-                dailyService.upContent(openId,dailyMap,content);
+            if (StringUtil.isNotEmpty(content) && StringUtil.isNotEmpty(openId) && StringUtil.isNotEmpty(dailyMap)) {
+                dailyService.upContent(openId, dailyMap, content);
             }
         } catch (Exception e) {
             log.info(e.toString());
@@ -94,6 +94,28 @@ public class DailyController {
         }
         Result result = new Result(200, "success");
         return new ResponseEntity(result, HttpStatus.OK);
+    }
+
+
+    @ApiOperation(value = "获取发表日志", notes = "获取发表日志")
+    @ApiImplicitParams(
+            {
+                    @ApiImplicitParam(name = "openId", dataType = "String", paramType = "query", value = "用户标识"),
+                    @ApiImplicitParam(name = "pageNum", dataType = "String", paramType = "query", value = "页码"),
+            }
+    )
+    @GetMapping(value = "obtain", produces = "application/json; charset=utf-8")
+    @ResponseBody
+    public ResponseEntity obtain(String openId, int pageNum) {
+
+        try {
+            List<DailyVO> dailyVO = dailyService.obtain(openId, pageNum);
+            return new ResponseEntity(new Result(200, "success", dailyVO), HttpStatus.OK);
+        } catch (Exception e) {
+            log.info(e.toString());
+            return new ResponseEntity(new Result("获取失败"), HttpStatus.FAILED_DEPENDENCY);
+        }
+
     }
 
 }

@@ -25,11 +25,15 @@ spring:
     connectionProperties: druid.stat.mergeSql=true;druid.stat.slowSqlMillis=500
   jackson:
     default-property-inclusion: non_null
-mybatis:
-  # 指定sql映射文件位置
-  mapper-locations: classpath:mapping/*.xml
-  #mybatis
-  type-aliases-package: tk.mybatis.springboot.model
+
+
+
+pagehelper:
+  helperDialect: mysql
+  reasonable: true
+  supportMethodsArguments: true
+  params: count=countSql
+
 
 web:
   upload:

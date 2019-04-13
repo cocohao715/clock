@@ -2,6 +2,8 @@ package com.gduf.clock.service;
 
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+
 /**
  * Created with IDEA
  * author:HaoChen
@@ -15,5 +17,7 @@ public interface DailyService {
 
     void uploadSpeech(MultipartFile[] files, String dailyMap, String openId);
 
-    void upContent(String openId,String dailyMap,String content);
+    void upContent(String openId, String dailyMap, String content);
+
+    List obtain(String openId, int pageNum);
 }

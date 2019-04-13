@@ -12,4 +12,7 @@
     <result column="likes" jdbcType="INTEGER" property="likes" />
     <result column="daily_map" jdbcType="VARCHAR" property="dailyMap" />
   </resultMap>
+  <select id="selectDailyMap" parameterType="string" resultMap="BaseResultMap">
+    select * from daily_likes where daily_map=#{dailyMap}
+  </select>
 </mapper>

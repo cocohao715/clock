@@ -1,14 +1,11 @@
 package com.gduf.clock.service.impl;
 
-import com.gduf.clock.dao.DailyRecordMapper;
-import com.gduf.clock.dao.ImageInfoMapper;
-import com.gduf.clock.dao.SpeechInfoMapper;
-import com.gduf.clock.dao.VideoInfoMapper;
-import com.gduf.clock.entity.DailyRecord;
-import com.gduf.clock.entity.ImageInfo;
-import com.gduf.clock.entity.SpeechInfo;
-import com.gduf.clock.entity.VideoInfo;
+import com.gduf.clock.dao.*;
+import com.gduf.clock.entity.*;
 import com.gduf.clock.service.DailyService;
+import com.gduf.clock.vo.DailyVO;
+import com.github.pagehelper.PageHelper;
+import com.github.pagehelper.PageInfo;
 import org.apache.commons.io.FileUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -19,7 +16,10 @@ import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Created with IDEA
@@ -33,6 +33,8 @@ public class DailyServiceImpl implements DailyService {
     SpeechInfoMapper speechInfoMapper;
     VideoInfoMapper videoInfoMapper;
     DailyRecordMapper dailyRecordMapper;
+    DailyLikesMapper dailyLikesMapper;
+    DailyCommentMapper dailyCommentMapper;
     @Value("${web.upload.image.path}")
     private String imagePath;
     @Value("${web.upload.video.path}")
@@ -41,18 +43,21 @@ public class DailyServiceImpl implements DailyService {
     private String speechPath;
 
     public DailyServiceImpl(ImageInfoMapper imageInfoMapper, VideoInfoMapper videoInfoMapper,
-                            SpeechInfoMapper speechInfoMapper,DailyRecordMapper dailyRecordMapper) {
+                            SpeechInfoMapper speechInfoMapper, DailyRecordMapper dailyRecordMapper,
+                            DailyLikesMapper dailyLikesMapper, DailyCommentMapper dailyCommentMapper) {
         this.imageInfoMapper = imageInfoMapper;
         this.speechInfoMapper = speechInfoMapper;
         this.videoInfoMapper = videoInfoMapper;
-        this.dailyRecordMapper=dailyRecordMapper;
+        this.dailyRecordMapper = dailyRecordMapper;
+        this.dailyLikesMapper = dailyLikesMapper;
+        this.dailyCommentMapper = dailyCommentMapper;
     }
 
     @Override
-    public void uploadImage(MultipartFile[] files, String dailyMap,String openId) {
+    public void uploadImage(MultipartFile[] files, String dailyMap, String openId) {
         //保存图片
-        String[] fileNames=upload(files, imagePath);
-        for(String fileName:fileNames) {
+        String[] fileNames = upload(files, imagePath);
+        for (String fileName : fileNames) {
             ImageInfo imageInfo = ImageInfo.builder()
                     .dailyMap(dailyMap)
                     .id(UUID.randomUUID().toString())
@@ -65,10 +70,10 @@ public class DailyServiceImpl implements DailyService {
     }
 
     @Override
-    public void uploadVideo(MultipartFile[] files, String dailyMap,String openId) {
+    public void uploadVideo(MultipartFile[] files, String dailyMap, String openId) {
         //保存录像
-        String[] fileNames=upload(files, videoPath);
-        for(String fileName:fileNames) {
+        String[] fileNames = upload(files, videoPath);
+        for (String fileName : fileNames) {
             VideoInfo videoInfo = VideoInfo.builder()
                     .dailyMap(dailyMap)
                     .id(UUID.randomUUID().toString())
@@ -81,10 +86,10 @@ public class DailyServiceImpl implements DailyService {
     }
 
     @Override
-    public void uploadSpeech(MultipartFile[] files, String dailyMap,String openId) {
+    public void uploadSpeech(MultipartFile[] files, String dailyMap, String openId) {
         //保存语音
-        String[] fileNames=upload(files, speechPath);
-        for(String fileName:fileNames){
+        String[] fileNames = upload(files, speechPath);
+        for (String fileName : fileNames) {
             SpeechInfo speechInfo = SpeechInfo.builder()
                     .dailyMap(dailyMap)
                     .id(UUID.randomUUID().toString())
@@ -98,22 +103,61 @@ public class DailyServiceImpl implements DailyService {
     }
 
     @Override
-    public void upContent(String openId,String dailyMap,String content){
+    public void upContent(String openId, String dailyMap, String content) {
 
-        DailyRecord dailyRecord=DailyRecord.builder().
+        DailyRecord dailyRecord = DailyRecord.builder().
                 dailyMap(dailyMap).content(content).openId(openId).id(UUID.randomUUID().toString()).build();
         dailyRecordMapper.insert(dailyRecord);
     }
 
+    @Override
+    public List obtain(String openId, int pageNum) {
+
+        List<DailyRecord> dailyRecords = getDailyRecords(pageNum);
+        if (dailyRecords != null || !dailyRecords.isEmpty()) {
+            List<DailyVO> dailyVOS = dailyRecords.stream().map((dailyRecord) -> {
+
+                        //取出对应关系
+                        String dailyMap = dailyRecord.getDailyMap();
+                        //查询
+                        List<ImageInfo> imageInfos = imageInfoMapper.selectDailyMap(dailyMap);
+                        List<SpeechInfo> speechInfos = speechInfoMapper.selectDailyMap(dailyMap);
+                        List<VideoInfo> videoInfos = videoInfoMapper.selectDailyMap(dailyMap);
+                        List<DailyComment> dailyComments = dailyCommentMapper.selectDailyMap(dailyMap);
+                        DailyLikes dailyLikes = dailyLikesMapper.selectDailyMap(dailyMap);
+                        //封装
+
+                        DailyVO dailyVO = DailyVO.builder()
+                                .dailyRecord(dailyRecord)
+                                .imageInfos(imageInfos)
+                                .speechInfos(speechInfos)
+                                .videoInfos(videoInfos)
+                                .dailyComments(dailyComments)
+                                .dailyLikes(dailyLikes).build();
+                        return dailyVO;
+                    }
+
+            ).collect(Collectors.toList());
+            return dailyVOS;
+        }
+        return new LinkedList();
+    }
+
+    public List<DailyRecord> getDailyRecords(int pageNum) {
+        PageHelper.startPage(pageNum, 10);
+        List<DailyRecord> dailyRecords = dailyRecordMapper.selectAll();
+        PageInfo<DailyRecord> pageInfo = new PageInfo<DailyRecord>(dailyRecords);
+        return pageInfo.getList();
+    }
 
     public String[] upload(MultipartFile[] files, String uploadPath) {
-        String[] fileNames=new String[files.length];
+        String[] fileNames = new String[files.length];
         //多文件上传
         if (files != null && files.length >= 1) {
             BufferedOutputStream bw = null;
 
             try {
-                for(int i=0;i<files.length;i++) {
+                for (int i = 0; i < files.length; i++) {
                     fileNames[i] = files[i].getOriginalFilename();
 
                     //判断是否有文件(实际生产中要判断是否是音频文件)
@@ -138,6 +182,6 @@ public class DailyServiceImpl implements DailyService {
 
             }
         }
-            return fileNames;
+        return fileNames;
     }
 }
