@@ -1,6 +1,7 @@
 package com.gduf.clock.service;
 
 import com.gduf.clock.entity.UserInfo;
+import com.gduf.clock.vo.DetailVO;
 
 public interface UserService {
     /**
@@ -10,4 +11,5 @@ public interface UserService {
      * @return
      */
     UserInfo userLogin(String encryptedData, String iv, String code);
+    DetailVO userDetail(String openId);
 }

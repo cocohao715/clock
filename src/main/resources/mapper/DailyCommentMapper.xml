@@ -12,7 +12,3 @@
     <result column="comment" jdbcType="LONGVARCHAR" property="comment" />
   </resultMap>
 
-  <select id="selectDailyMap" parameterType="string" resultMap="BaseResultMap">
-    select * from daily_comment where daily_map=#{dailyMap}
-  </select>
-</mapper>

@@ -4,14 +4,15 @@ package com.gduf.clock.controller;
 import com.gduf.clock.service.DailyService;
 import com.gduf.clock.service.impl.DailyServiceImpl;
 import com.gduf.clock.vo.DailyVO;
-import com.gduf.clock.vo.Result;
+import com.gduf.clock.vo.GenericResponse;
+import com.gduf.clock.vo.ResponseFormat;
+
 import io.swagger.annotations.ApiImplicitParam;
 import io.swagger.annotations.ApiImplicitParams;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.ibatis.annotations.Param;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import tk.mybatis.mapper.util.StringUtil;
@@ -46,7 +47,7 @@ public class DailyController {
     )
     @PostMapping(value = "upload", produces = "application/json; charset=utf-8")
     @ResponseBody
-    public ResponseEntity upload(@RequestParam("file") MultipartFile[] files,
+    public GenericResponse upload(@RequestParam("file") MultipartFile[] files,
                                  @RequestParam("dailyMap") String dailyMap,
                                  @RequestParam("openId") String openId,
                                  @RequestParam("type") int type) {
@@ -62,12 +63,9 @@ public class DailyController {
         } catch (Exception e) {
 
             log.info(e.toString());
-            return new ResponseEntity(new Result("上传失败"), HttpStatus.FAILED_DEPENDENCY);
+            return  ResponseFormat.retParam(40001,e);
         }
-
-        Result result = new Result(200, "success");
-        return new ResponseEntity(result, HttpStatus.OK);
-
+        return ResponseFormat.retParam(200,null);
     }
 
 
@@ -81,19 +79,22 @@ public class DailyController {
     )
     @PostMapping(value = "upContent", produces = "application/json; charset=utf-8")
     @ResponseBody
-    public ResponseEntity upContent(@RequestParam("openId") String openId,
+    public GenericResponse upContent(@RequestParam("openId") String openId,
                                     @RequestParam("content") String content,
                                     @RequestParam("dailyMap") String dailyMap) {
         try {
             if (StringUtil.isNotEmpty(content) && StringUtil.isNotEmpty(openId) && StringUtil.isNotEmpty(dailyMap)) {
+                //累加打卡天数和分数
+                dailyService.addInsistDay(openId);
+                //上传发表内容
                 dailyService.upContent(openId, dailyMap, content);
+
             }
         } catch (Exception e) {
             log.info(e.toString());
-            return new ResponseEntity(new Result("提交失败"), HttpStatus.FAILED_DEPENDENCY);
+            return  ResponseFormat.retParam(40001,e);
         }
-        Result result = new Result(200, "success");
-        return new ResponseEntity(result, HttpStatus.OK);
+        return ResponseFormat.retParam(200,null);
     }
 
 
@@ -106,14 +107,15 @@ public class DailyController {
     )
     @GetMapping(value = "obtain", produces = "application/json; charset=utf-8")
     @ResponseBody
-    public ResponseEntity obtain(String openId, int pageNum) {
+    public GenericResponse obtain(@Param(value = "openId") String openId, @RequestParam(defaultValue = "1")int pageNum) {
 
         try {
             List<DailyVO> dailyVO = dailyService.obtain(openId, pageNum);
-            return new ResponseEntity(new Result(200, "success", dailyVO), HttpStatus.OK);
+            return  ResponseFormat.retParam(200,dailyVO);
         } catch (Exception e) {
             log.info(e.toString());
-            return new ResponseEntity(new Result("获取失败"), HttpStatus.FAILED_DEPENDENCY);
+            e.printStackTrace();
+            return  ResponseFormat.retParam(40001,e);
         }
 
     }

@@ -1,6 +1,6 @@
 package com.gduf.clock.entity;
 
-import lombok.Builder;
+
 import lombok.Data;
 
 import javax.persistence.Column;
@@ -10,7 +10,6 @@ import java.util.Date;
 
 @Table(name = "image_info")
 @Data
-@Builder
 public class ImageInfo {
     @Id
     private String id;

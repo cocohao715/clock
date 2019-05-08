@@ -1,15 +1,18 @@
 package com.gduf.clock.controller;
 
 import com.gduf.clock.entity.UserInfo;
+import com.gduf.clock.exception.MyException;
+import com.gduf.clock.exception.UserException;
 import com.gduf.clock.service.UserService;
 import com.gduf.clock.service.impl.UserServiceImpl;
-import com.gduf.clock.vo.Result;
+import com.gduf.clock.vo.DetailVO;
+import com.gduf.clock.vo.GenericResponse;
+import com.gduf.clock.vo.ResponseFormat;
 import io.swagger.annotations.ApiImplicitParam;
 import io.swagger.annotations.ApiImplicitParams;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.apache.ibatis.annotations.Param;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -36,24 +39,39 @@ public class UserController {
                     @ApiImplicitParam(name = "code", dataType = "String", paramType = "query")
             }
     )
-    public ResponseEntity<String> login(String encryptedData, String iv, String code) {
-        Result result;
+    public GenericResponse login(@Param("encryptedData") String encryptedData, @Param("iv")String iv, @Param("code")String code) {
+
         HashMap jsonData = new HashMap(16);
         if (StringUtil.isEmpty(encryptedData) || StringUtil.isEmpty(iv) || StringUtil.isEmpty(code)) {
-            return new ResponseEntity(new Result("参数不能为空"), HttpStatus.NO_CONTENT);
+            //参数出错
+            throw new MyException(50002,new UserException("参数错误"));
         }
 
         try {
             UserInfo userInfo = userService.userLogin(encryptedData, iv, code);
             jsonData.put("openId", userInfo.getOpenId());
-            result = new Result(200, "success", jsonData);
-            return new ResponseEntity(result, HttpStatus.OK);
+            return ResponseFormat.retParam(200,userInfo);
         } catch (Exception e) {
             log.info(e.toString());
-            return new ResponseEntity(new Result("服务器错误"), HttpStatus.FAILED_DEPENDENCY);
+            throw new MyException(40001,e);
         }
-
 
     }
 
+    @ResponseBody
+    @GetMapping(value = "detail", produces = "application/json")
+    @ApiOperation(value = "获取个人信息", notes = "微信用户登陆")
+    @ApiImplicitParams(
+            {
+                    @ApiImplicitParam(name = "openId", dataType = "String", paramType = "query"),
+            }
+    )
+    public GenericResponse detail(@Param("openId") String openId) {
+        try {
+            DetailVO detailVO=userService.userDetail(openId);
+            return ResponseFormat.retParam(200,detailVO);
+        } catch (Exception e) {
+            throw new MyException(40001,e);
+        }
+    }
 }

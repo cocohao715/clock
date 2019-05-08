@@ -13,7 +13,5 @@
     <result column="content" jdbcType="LONGVARCHAR" property="content" />
   </resultMap>
 
-  <select id="selectDailyMap" parameterType="String" resultMap="BaseResultMap">
-    select * from daily_record where daily_map=#{dailyMap}
-  </select>
+
 </mapper>

@@ -3,6 +3,7 @@ package com.gduf.clock.service.impl;
 import com.gduf.clock.dao.*;
 import com.gduf.clock.entity.*;
 import com.gduf.clock.service.DailyService;
+import com.gduf.clock.util.DateUtils;
 import com.gduf.clock.vo.DailyVO;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
@@ -10,6 +11,7 @@ import org.apache.commons.io.FileUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import tk.mybatis.mapper.entity.Example;
 import tk.mybatis.mapper.util.StringUtil;
 
 import java.io.BufferedOutputStream;
@@ -35,6 +37,7 @@ public class DailyServiceImpl implements DailyService {
     DailyRecordMapper dailyRecordMapper;
     DailyLikesMapper dailyLikesMapper;
     DailyCommentMapper dailyCommentMapper;
+    UserClockInfoMapper userClockInfoMapper;
     @Value("${web.upload.image.path}")
     private String imagePath;
     @Value("${web.upload.video.path}")
@@ -44,13 +47,15 @@ public class DailyServiceImpl implements DailyService {
 
     public DailyServiceImpl(ImageInfoMapper imageInfoMapper, VideoInfoMapper videoInfoMapper,
                             SpeechInfoMapper speechInfoMapper, DailyRecordMapper dailyRecordMapper,
-                            DailyLikesMapper dailyLikesMapper, DailyCommentMapper dailyCommentMapper) {
+                            DailyLikesMapper dailyLikesMapper, DailyCommentMapper dailyCommentMapper,
+                            UserClockInfoMapper userClockInfoMapper) {
         this.imageInfoMapper = imageInfoMapper;
         this.speechInfoMapper = speechInfoMapper;
         this.videoInfoMapper = videoInfoMapper;
         this.dailyRecordMapper = dailyRecordMapper;
         this.dailyLikesMapper = dailyLikesMapper;
         this.dailyCommentMapper = dailyCommentMapper;
+        this.userClockInfoMapper=userClockInfoMapper;
     }
 
     @Override
@@ -58,13 +63,12 @@ public class DailyServiceImpl implements DailyService {
         //保存图片
         String[] fileNames = upload(files, imagePath);
         for (String fileName : fileNames) {
-            ImageInfo imageInfo = ImageInfo.builder()
-                    .dailyMap(dailyMap)
-                    .id(UUID.randomUUID().toString())
-                    .openId(openId)
-                    .imgPath(fileName)
-                    .time(new Date())
-                    .build();
+            ImageInfo imageInfo = new ImageInfo();
+            imageInfo.setDailyMap(dailyMap);
+            imageInfo.setId(UUID.randomUUID().toString());
+            imageInfo.setOpenId(openId);
+            imageInfo.setImgPath(fileName);
+            imageInfo.setTime(new Date());
             imageInfoMapper.insert(imageInfo);
         }
     }
@@ -90,13 +94,12 @@ public class DailyServiceImpl implements DailyService {
         //保存语音
         String[] fileNames = upload(files, speechPath);
         for (String fileName : fileNames) {
-            SpeechInfo speechInfo = SpeechInfo.builder()
-                    .dailyMap(dailyMap)
-                    .id(UUID.randomUUID().toString())
-                    .openId(openId)
-                    .speechPath(fileName)
-                    .time(new Date())
-                    .build();
+            SpeechInfo speechInfo =new  SpeechInfo();
+            speechInfo.setDailyMap(dailyMap);
+            speechInfo.setId(UUID.randomUUID().toString());
+            speechInfo.setOpenId(openId);
+            speechInfo.setSpeechPath(fileName);
+            speechInfo.setTime(new Date());
             speechInfoMapper.insert(speechInfo);
         }
 
@@ -105,8 +108,15 @@ public class DailyServiceImpl implements DailyService {
     @Override
     public void upContent(String openId, String dailyMap, String content) {
 
-        DailyRecord dailyRecord = DailyRecord.builder().
-                dailyMap(dailyMap).content(content).openId(openId).id(UUID.randomUUID().toString()).build();
+        UserClockInfo userClockInfo=userClockInfoMapper.selectByPrimaryKey(openId);
+        //坚持天数
+        Integer insistDay=(userClockInfo==null?0:userClockInfo.getInsistDay());
+        DailyRecord dailyRecord = new DailyRecord();
+        dailyRecord.setInsistDay(insistDay);
+        dailyRecord.setDailyMap(dailyMap);
+        dailyRecord.setContent(content);
+        dailyRecord.setOpenId(openId);
+        dailyRecord.setId(UUID.randomUUID().toString());
         dailyRecordMapper.insert(dailyRecord);
     }
 
@@ -114,18 +124,20 @@ public class DailyServiceImpl implements DailyService {
     public List obtain(String openId, int pageNum) {
 
         List<DailyRecord> dailyRecords = getDailyRecords(pageNum);
-        if (dailyRecords != null || !dailyRecords.isEmpty()) {
+        if (dailyRecords != null &&!dailyRecords.isEmpty()) {
             List<DailyVO> dailyVOS = dailyRecords.stream().map((dailyRecord) -> {
 
                         //取出对应关系
                         String dailyMap = dailyRecord.getDailyMap();
                         //查询
-                        List<ImageInfo> imageInfos = imageInfoMapper.selectDailyMap(dailyMap);
-                        List<SpeechInfo> speechInfos = speechInfoMapper.selectDailyMap(dailyMap);
-                        List<VideoInfo> videoInfos = videoInfoMapper.selectDailyMap(dailyMap);
-                        List<DailyComment> dailyComments = dailyCommentMapper.selectDailyMap(dailyMap);
-                        DailyLikes dailyLikes = dailyLikesMapper.selectDailyMap(dailyMap);
-                        //封装
+                         Example example=new Example(DailyRecord.class);
+                        example.createCriteria().andEqualTo(dailyMap);
+                List<ImageInfo> imageInfos = imageInfoMapper .selectByExample(example);
+                List<SpeechInfo> speechInfos = speechInfoMapper .selectByExample(example);
+                List<VideoInfo> videoInfos = videoInfoMapper .selectByExample(example);
+                List<DailyComment> dailyComments = dailyCommentMapper .selectByExample(example);
+                DailyLikes dailyLikes = dailyLikesMapper .selectOneByExample(example);
+                  //封装
 
                         DailyVO dailyVO = DailyVO.builder()
                                 .dailyRecord(dailyRecord)
@@ -184,4 +196,51 @@ public class DailyServiceImpl implements DailyService {
         }
         return fileNames;
     }
+
+
+    /**
+     * 累加打卡天数
+     * @param openId
+     */
+    @Override
+    public void addInsistDay(String openId)
+    {
+        UserClockInfo userClockInfo=userClockInfoMapper.selectByPrimaryKey(openId);
+
+        if(userClockInfo!=null)
+        {
+            //坚持天数累加
+            if(!DateUtils.isToday(userClockInfo.getClockTime()))
+            {
+                //天数累加
+                userClockInfo.setInsistDay(userClockInfo.getInsistDay()+1);
+                //分数累加10
+                userClockInfo.setScore(userClockInfo.getScore()+10.0f);
+                userClockInfo.setClockTime(new Date());
+                //修改
+                userClockInfoMapper.updateByPrimaryKey(userClockInfo);
+            }
+            //当天已打卡，分数累加5
+            else
+            {
+                //分数累加5
+                userClockInfo.setScore(userClockInfo.getScore()+5.0f);
+                //修改
+                userClockInfoMapper.updateByPrimaryKey(userClockInfo);
+            }
+
+        }
+        else
+        {
+            userClockInfo=new UserClockInfo();
+            userClockInfo.setClockTime(new Date());
+            userClockInfo.setInsistDay(1);
+            userClockInfo.setOpenId(openId);
+            userClockInfo.setTime(new Date());
+            userClockInfo.setScore(10.0f);
+            //存回
+            userClockInfoMapper.insert(userClockInfo);
+        }
+    }
+
 }

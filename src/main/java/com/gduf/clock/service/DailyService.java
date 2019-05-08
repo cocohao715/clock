@@ -20,4 +20,6 @@ public interface DailyService {
     void upContent(String openId, String dailyMap, String content);
 
     List obtain(String openId, int pageNum);
+
+    public void addInsistDay(String openId);
 }

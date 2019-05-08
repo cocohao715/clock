@@ -1,5 +1,6 @@
 package com.gduf.clock.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Builder;
 import lombok.Data;
 
@@ -10,7 +11,7 @@ import java.util.Date;
 
 @Table(name = "user_info")
 @Data
-@Builder
+@JsonIgnoreProperties(value={"time"})
 public class UserInfo {
     @Id
     @Column(name = "open_id")

@@ -10,7 +10,6 @@ import java.util.Date;
 
 @Table(name = "speech_info")
 @Data
-@Builder
 public class SpeechInfo {
     @Id
     private String id;

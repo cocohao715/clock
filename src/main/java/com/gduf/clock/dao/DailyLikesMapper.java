@@ -5,5 +5,4 @@ import tk.mybatis.mapper.common.Mapper;
 
 
 public interface DailyLikesMapper extends Mapper<DailyLikes> {
-    DailyLikes selectDailyMap(String dailyMap);
 }
