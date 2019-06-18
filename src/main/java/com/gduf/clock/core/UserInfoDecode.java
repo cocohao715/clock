@@ -17,7 +17,7 @@ public class UserInfoDecode {
     /**
      * 小程序的 app secret
      */
-    static private final String WXSP_SECRET = "6e9c535d608be6f2cd1288196e8ca54e";
+    static private final String WXSP_SECRET = "3be8049fb1f372404e5de1e60fec844e";
     /**
      * 授权（必填）
      */
@@ -28,7 +28,7 @@ public class UserInfoDecode {
         Map map = new HashMap(16);
         //登录凭证不能为空
         if (code == null || code.length() == 0) {
-            map.put("status", 0);
+            map.put("status", "1");
             map.put("msg", "code 不能为空");
             return map;
         }

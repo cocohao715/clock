@@ -11,6 +11,7 @@ import java.security.Security;
 
 
 /**
+ * Created by lsh
  * AES-128-CBC 加密方式
  * 注：
  * AES-128-CBC可以自己定义“密钥”和“偏移量“。
@@ -53,6 +54,7 @@ public class AesCbcUtil {
             parameters.init(new IvParameterSpec(ivByte));
             // 初始化
             cipher.init(Cipher.DECRYPT_MODE, spec, parameters);
+
             byte[] resultByte = cipher.doFinal(dataByte);
             if (null != resultByte && resultByte.length > 0) {
                 String result = new String(resultByte, encodingFormat);

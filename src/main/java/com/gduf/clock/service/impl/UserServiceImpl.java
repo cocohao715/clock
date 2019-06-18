@@ -41,7 +41,7 @@ public class UserServiceImpl implements UserService {
         String status = map.get("status").toString();
         if (StringUtils.equals(status, "1")) {
             //处理
-            UserInfo userInfo = JSONObject.parseObject(JSONObject.toJSONString(map.get("userInfo")).toString(), UserInfo.class);
+            UserInfo userInfo   = JSONObject.parseObject(JSONObject.toJSONString(map.get("userInfo")).toString(), UserInfo.class);
 
             UserInfo userTemp = userInfoMapper.selectByPrimaryKey(userInfo);
             if (userTemp != null) {
@@ -79,7 +79,6 @@ public class UserServiceImpl implements UserService {
         Example example=new Example(UserClockInfo.class);
         example.createCriteria()
                 .andGreaterThanOrEqualTo("clockTime", DateUtils.getTodayDate());
-              //  .andCondition("to_days()="," to_days(now())");
         Integer duas=userClockInfoMapper.selectCountByExample(example);
         //查询当天发表日志数量
         Example example2=new Example(DailyRecord.class);
